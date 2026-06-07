@@ -4,6 +4,8 @@
  * Query Builder
  */
 
+require_once 'helpers.php';
+
 class QueryBuilder 
 {
   
@@ -13,6 +15,7 @@ class QueryBuilder
  protected $where   = [];
  protected $select  = [];
  protected $whereOr = [];
+ protected $like    = [];
  
 
  /*
@@ -91,10 +94,25 @@ class QueryBuilder
       */
       public function whereOr( string $column, mixed $value ): self 
       {
-        $this->whereOr[] = "{$column} {$value}";
+        $this->whereOr[] = "{$column} = '{$value}'";
 
         return $this;
       }
+
+      /**
+       * Add LIKE search pattern
+       * 
+       * @param string $column
+       * @param string $value
+       * @return self
+       */
+
+      public function like(string $column, string $value): self
+       {
+         $value = strtolower($value);
+         $this->like[] = "LOWER({$column}) LIKE '%{$value}%'";
+         return $this;
+       }
 
      /**
       * Get SQL Query
@@ -106,25 +124,28 @@ class QueryBuilder
          $columns = ! empty($this->select)
                      ? implode(', ', $this->select)
                      : '*';
-         
 
          $sql = "SELECT {$columns} FROM {$this->table}";
 
-         if( ! empty( $this->where ) ){
-               $sql .= " WHERE " . implode(' AND ', $this->where);
+         if (!empty($this->where) || !empty($this->like)) {
+            $sql .= " WHERE ";
+            $sql .= implode(' AND ', array_merge($this->where, $this->like));
          }
 
          if (!empty($this->whereOr)) {
-            $sql .= (!empty($this->where) ? " OR " : " WHERE ");
-            $sql .= implode(' OR ', $this->whereOr);
-         }
-
-         if (!empty($this->limit)) {
-            $sql .= " LIMIT {$this->limit}";
+            if (!empty($this->where) || !empty($this->like)) {
+                $sql .= " AND (" . implode(' OR ', $this->whereOr) . ")";
+            } else {
+                $sql .= " WHERE " . implode(' OR ', $this->whereOr);
+            }
          }
 
          if (!empty($this->orderBy)) {
             $sql .= " ORDER BY {$this->orderBy}";
+         }
+
+         if (!empty($this->limit)) {
+            $sql .= " LIMIT {$this->limit}";
          }
 
          return $sql;
@@ -133,21 +154,11 @@ class QueryBuilder
 }
 
 $instance = new QueryBuilder();
-$query    = $instance->table('users')->where('name', 'John')->whereOr('name', 'Ali')->toSQL();
+$query    = $instance->table('users')->like('name', 'john')->toSQL();
+
 echo $query;
-$pdo      = new PDO( "mysql:host=host;dbname=dbname", "youruser","yourpasss" );
 
-
-function run($query, $pdo)
-{
-    $sql = $query;
-
-    $stmt = $pdo->query($sql);
-
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
-}
-
-$result   = run($query, $pdo);
+$result   = run($query);
 
 echo "<pre>";
   print_r($result);
