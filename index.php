@@ -12,6 +12,7 @@ class QueryBuilder
  protected $table;
  protected $limit;
  protected $orderBy;
+ protected $groupBy;
  protected $where   = [];
  protected $select  = [];
  protected $whereOr = [];
@@ -106,13 +107,25 @@ class QueryBuilder
        * @param string $value
        * @return self
        */
-
       public function like(string $column, string $value): self
        {
          $value = strtolower($value);
          $this->like[] = "LOWER({$column}) LIKE '%{$value}%'";
          return $this;
        }
+
+      /**
+       * Add GROUP BY column
+       * 
+       * @param string $column
+       * @return self
+       */
+      public function groupBy(string $column): self 
+      {
+          $this->groupBy = $column;
+          return $this;
+      }
+
 
      /**
       * Get SQL Query
@@ -144,6 +157,10 @@ class QueryBuilder
             $sql .= " ORDER BY {$this->orderBy}";
          }
 
+         if (!empty($this->groupBy)) {
+            $sql .= " GROUP BY {$this->groupBy}";
+         }
+
          if (!empty($this->limit)) {
             $sql .= " LIMIT {$this->limit}";
          }
@@ -154,7 +171,7 @@ class QueryBuilder
 }
 
 $instance = new QueryBuilder();
-$query    = $instance->table('users')->like('name', 'john')->toSQL();
+$query    = $instance->table('users')->select('email')->groupBy('email')->toSQL();
 
 echo $query;
 
