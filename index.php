@@ -13,10 +13,13 @@ class QueryBuilder
  protected $limit;
  protected $orderBy;
  protected $groupBy;
- protected $where   = [];
- protected $select  = [];
- protected $whereOr = [];
- protected $like    = [];
+ protected $having;
+ protected $count;
+ protected $distinct = false;
+ protected $where    = [];
+ protected $select   = [];
+ protected $whereOr  = [];
+ protected $like     = [];
  
 
  /*
@@ -126,6 +129,41 @@ class QueryBuilder
           return $this;
       }
 
+     /**
+      * Add HAVING condition
+      *
+      * @param string $condition
+      * @return self
+      */
+     public function having(string $condition): self
+      {
+         $this->having = $condition;
+         return $this;
+      }
+
+      /**
+       * Select DISTINCT for remove duplicate
+       * 
+       * @return self
+       */
+      public function distinct(): self 
+      {
+        $this->distinct = true;
+        
+        return $this;
+      }
+
+      /**
+       * Add COUNT for row
+       * 
+       * @param string $count
+       * @return self
+       */
+      public function count(string $column = "*"): self 
+      {
+        $this->select = ["COUNT(  $column  ) AS count"];
+        return $this;
+      }
 
      /**
       * Get SQL Query
@@ -161,8 +199,16 @@ class QueryBuilder
             $sql .= " GROUP BY {$this->groupBy}";
          }
 
+          if (!empty($this->having)) {
+            $sql .= " HAVING {$this->having}";
+         }
+
          if (!empty($this->limit)) {
             $sql .= " LIMIT {$this->limit}";
+         }
+
+         if ($this->distinct) {
+            $sql = str_replace("SELECT", "SELECT DISTINCT", $sql);
          }
 
          return $sql;
@@ -171,7 +217,7 @@ class QueryBuilder
 }
 
 $instance = new QueryBuilder();
-$query    = $instance->table('users')->select('email')->groupBy('email')->toSQL();
+$query    = $instance->table('users')->count('email')->toSQL();
 
 echo $query;
 
