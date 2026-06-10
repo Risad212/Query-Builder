@@ -216,6 +216,95 @@ class QueryBuilder
          return $this;
       }
 
+      /**
+       * Add SUM in column
+       * 
+       * @param string $column
+       * @return self
+       */
+      public function sum(string $column): self
+      {
+         $this->select = ["SUM({$column}) AS total"];
+
+         return $this;
+      }
+
+
+      /**
+       * Add AVG in column
+       * 
+       * @param string $column
+       * @return self
+       */
+      public function avg(string $column): self
+      {
+         $this->select = ["AVG({$column}) AS average"];
+
+         return $this;
+      }
+
+      /**
+       * Add MIN in column
+       * 
+       * @param string $column
+       * @return self
+       */
+      public function min(string $column): self
+      {
+         $this->select = ["MIN({$column}) AS Minimum"];
+
+         return $this;
+      }
+
+       /**
+       * Add MAX in column
+       * 
+       * @param string $column
+       * @return self
+       */
+      public function max(string $column): self
+      {
+         $this->select = ["MAX({$column}) AS Maximum"];
+         return $this;
+      }
+
+      /**
+       * Add BETWEEN in column
+       * 
+       * @param string $column
+       * @param string $start
+       * @param string $end
+       * @return self
+       */
+      public function whereBetween(string $column, string $start, string $end): self 
+      {
+        $this->where[] = "{$column} BETWEEN {$start} AND {$end}";
+        return $this;
+      }
+
+      /**
+       * Find column where NULL
+       * 
+       * @param string $column
+       * @return self
+       */
+      public function whereNull(string $column): self
+      {
+         $this->where[] = "{$column} IS NULL";
+         return $this;
+      }
+
+      /**
+       * Find column where not NULL
+       * 
+       * @param string $column
+       * @return self
+       */
+      public function whereNotNull(string $column): self
+      {
+         $this->where[] = "{$column} IS NOT NULL";
+         return $this;
+      }
 
      /**
       * Get SQL Query
@@ -276,12 +365,11 @@ class QueryBuilder
 
          return $sql;
       }
-      
-
 }
 
 $instance = new QueryBuilder();
-$query    = $instance->table('users')->limit(5)->offset(1)->toSQL();
+$query    = $instance->table('users')->whereNull('email')->toSQL();
+ 
 
 echo $query;
 
