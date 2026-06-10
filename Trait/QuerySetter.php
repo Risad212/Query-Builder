@@ -1,7 +1,8 @@
 <?php
 
-trait QuerySetter 
+trait QuerySetter  
 {
+
  /*
   * set table name
   *
@@ -194,54 +195,18 @@ trait QuerySetter
       }
 
       /**
-       * Add SUM in column
+       * Add aggregate in column
        * 
        * @param string $column
+       * @param string type
        * @return self
        */
-      public function sum(string $column): self
+      public function aggregate(string $type, string $column): self
       {
-         $this->select = ["SUM({$column}) AS total"];
+         $typeUpper    = strtoupper( $type );
+         
+         $this->select = ["{$typeUpper}({$column}) AS {$type}"];
 
-         return $this;
-      }
-
-
-      /**
-       * Add AVG in column
-       * 
-       * @param string $column
-       * @return self
-       */
-      public function avg(string $column): self
-      {
-         $this->select = ["AVG({$column}) AS average"];
-
-         return $this;
-      }
-
-      /**
-       * Add MIN in column
-       * 
-       * @param string $column
-       * @return self
-       */
-      public function min(string $column): self
-      {
-         $this->select = ["MIN({$column}) AS Minimum"];
-
-         return $this;
-      }
-
-       /**
-       * Add MAX in column
-       * 
-       * @param string $column
-       * @return self
-       */
-      public function max(string $column): self
-      {
-         $this->select = ["MAX({$column}) AS Maximum"];
          return $this;
       }
 

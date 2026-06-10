@@ -54,12 +54,10 @@ class QueryBuilder
 }
 
 $instance = new QueryBuilder();
-$query    = $instance->table('users')->whereNull('email')->toSQL();
+$query    = $instance->table('orders')->aggregate('avg', 'price')->toSQL();
 
 echo $query;
-
 $result = run($query);
-
 echo "<pre>";
 print_r($result);
 echo "</pre>";
