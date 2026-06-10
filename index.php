@@ -11,6 +11,7 @@ class QueryBuilder
   
  protected $table;
  protected $limit;
+ protected $offset;
  protected $orderBy;
  protected $groupBy;
  protected $having;
@@ -20,6 +21,8 @@ class QueryBuilder
  protected $select   = [];
  protected $whereOr  = [];
  protected $like     = [];
+ protected $join     = [];
+ protected $whereIn  = [];
  
 
  /*
@@ -161,9 +164,58 @@ class QueryBuilder
        */
       public function count(string $column = "*"): self 
       {
-        $this->select = ["COUNT(  $column  ) AS count"];
+        $this->select = []; // clear old select
+        $this->select[] = "COUNT({$column}) AS count"; 
+
         return $this;
       }
+
+      /**
+       * Add JOIN table
+       * 
+       * @param string $table
+       * @param string $condition
+       * @param string $type
+       * @return self
+       */
+      public function join(string $table, string $condition, string $type = 'INNER'): self 
+      {
+        $type = strtoupper($type);
+
+        $this->join[] = "{$type} JOIN {$table} ON {$condition}";
+
+        return $this;
+      }
+
+      /**
+       * Add OFFSET table
+       * 
+       * @param int $offset
+       * @return self
+       */
+      public function offset(int $offset): self 
+      {
+        $this->offset = $offset;
+
+        return $this;
+      }
+
+      /**
+       * Add IN in table
+       * 
+       * @param string $column
+       * @param array  $values
+       * @return self
+       */
+      public function whereIn(string $column, array $values): self 
+      {
+         $escaped = array_map(fn($v) => addslashes($v), $values);
+      
+         $this->whereIn[] = "{$column} IN ('" . implode("','", $escaped) . "')";
+         
+         return $this;
+      }
+
 
      /**
       * Get SQL Query
@@ -178,21 +230,27 @@ class QueryBuilder
 
          $sql = "SELECT {$columns} FROM {$this->table}";
 
-         if (!empty($this->where) || !empty($this->like)) {
-            $sql .= " WHERE ";
-            $sql .= implode(' AND ', array_merge($this->where, $this->like));
+         if (!empty($this->join)) {
+            $sql .= " " . implode(' ', $this->join);
+         }
+
+         if ($this->distinct) {
+            $sql = preg_replace('/^SELECT\s+/i', 'SELECT DISTINCT ', $sql);
+         }
+
+         $conditions = array_merge(
+            $this->where,
+            $this->like,
+            $this->whereIn
+         );
+
+         if (!empty($conditions)) {
+            $sql .= " WHERE " . implode(' AND ', $conditions);
          }
 
          if (!empty($this->whereOr)) {
-            if (!empty($this->where) || !empty($this->like)) {
-                $sql .= " AND (" . implode(' OR ', $this->whereOr) . ")";
-            } else {
-                $sql .= " WHERE " . implode(' OR ', $this->whereOr);
-            }
-         }
-
-         if (!empty($this->orderBy)) {
-            $sql .= " ORDER BY {$this->orderBy}";
+            $sql .= empty($conditions) ? " WHERE " : " AND ";
+            $sql .= "(" . implode(' OR ', $this->whereOr) . ")";
          }
 
          if (!empty($this->groupBy)) {
@@ -203,21 +261,27 @@ class QueryBuilder
             $sql .= " HAVING {$this->having}";
          }
 
-         if (!empty($this->limit)) {
-            $sql .= " LIMIT {$this->limit}";
+         if (!empty($this->orderBy)) {
+            $sql .= " ORDER BY {$this->orderBy}";
          }
 
-         if ($this->distinct) {
-            $sql = str_replace("SELECT", "SELECT DISTINCT", $sql);
+         
+         if (!empty($this->limit)) {
+            $sql .= " LIMIT {$this->limit}";
+
+            if (!empty($this->offset)) {
+            $sql .= " OFFSET {$this->offset}";
+           }
          }
 
          return $sql;
       }
+      
 
 }
 
 $instance = new QueryBuilder();
-$query    = $instance->table('users')->count('email')->toSQL();
+$query    = $instance->table('users')->limit(5)->offset(1)->toSQL();
 
 echo $query;
 
