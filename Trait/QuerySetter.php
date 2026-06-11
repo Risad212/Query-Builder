@@ -16,7 +16,7 @@ trait QuerySetter
     return $this;
  }
 
- /*
+  /*
   * Add A WHERE Condition
   *
   * @param string $column
@@ -77,11 +77,11 @@ trait QuerySetter
       * @param mixed  $value
       * @return self
       */
-      public function whereOr( string $column, mixed $value ): self 
+      public function whereOr( string $column, mixed $value, bool $not = false ): self 
       {
-        $this->whereOr[] = "{$column} = '{$value}'";
-
-        return $this;
+         $operator        = $not ? '!=' : '=';
+         $this->whereOr[] = "{$column} {$operator} '{$value}'";
+         return $this;
       }
 
       /**
@@ -116,7 +116,7 @@ trait QuerySetter
       * @param string $condition
       * @return self
       */
-     public function having(string $condition): self
+      public function having(string $condition): self
       {
          $this->having = $condition;
          return $this;
@@ -185,12 +185,11 @@ trait QuerySetter
        * @param array  $values
        * @return self
        */
-      public function whereIn(string $column, array $values): self 
+      public function whereIn(string $column, array $values, $not = false): self 
       {
-         $escaped = array_map(fn($v) => addslashes($v), $values);
-      
-         $this->whereIn[] = "{$column} IN ('" . implode("','", $escaped) . "')";
-         
+         $escaped         = array_map(fn($v) => addslashes($v), $values);
+         $operator        = $not ? 'NOT IN' : 'IN';
+         $this->whereIn[] = "{$column} {$operator} ('" . implode("','", $escaped) . "')";
          return $this;
       }
 
@@ -218,9 +217,11 @@ trait QuerySetter
        * @param string $end
        * @return self
        */
-      public function whereBetween(string $column, string $start, string $end): self 
+      public function whereBetween(string $column, string $start, string $end , bool $not = false): self 
       {
-        $this->where[] = "{$column} BETWEEN {$start} AND {$end}";
+        $this->where[] = $not
+        ? "{$column} NOT BETWEEN {$start} AND {$end}"
+        : "{$column} BETWEEN {$start} AND {$end}";
         return $this;
       }
 
@@ -230,21 +231,57 @@ trait QuerySetter
        * @param string $column
        * @return self
        */
-      public function whereNull(string $column): self
+       public function whereNull(string $column, bool $not = false): self
+        {
+          $this->where[] = $not ? "{$column} IS NOT NULL" : "{$column} IS NULL";
+          return $this;
+        }
+
+      /**
+       * Add UNION
+       * 
+       * @param string $query
+       * @return self
+       */
+      public function unions(string $query, bool $all = false): self
       {
-         $this->where[] = "{$column} IS NULL";
+         $this->unions[] = [
+            'query' => $query,
+            'all'   => $all,
+         ];
          return $this;
       }
 
       /**
-       * Find column where not NULL
+       * Add WHERE GROUP
        * 
-       * @param string $column
+       * @param
        * @return self
        */
-      public function whereNotNull(string $column): self
+      public function whereGroup(callable $callback): self
       {
-         $this->where[] = "{$column} IS NOT NULL";
+         $group = new self();
+
+         $callback($group);
+
+         $this->where[] = '(' . implode(' AND ', $group->where) . ')';
+
+         return $this;
+      }
+
+      /**
+       * Add WHERE EXIST
+       * 
+       * @param string $query
+       * @param bool   $not
+       * @return self
+       */
+      public function whereExists(string $query, bool $not = false): self
+      {
+         $operator = $not ? 'NOT EXISTS' : 'EXISTS';
+
+         $this->where[] = "{$operator} ({$query})";
+
          return $this;
       }
 }

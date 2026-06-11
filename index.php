@@ -24,6 +24,7 @@ class QueryBuilder
     protected $like     = [];
     protected $join     = [];
     protected $whereIn  = [];
+    protected $unions   = [];
 
       /**
        * Get SQL Query
@@ -32,8 +33,7 @@ class QueryBuilder
        */
       public function toSQL(): string 
       {
-         $sql = [];
-
+         $sql   = [];
          $sql[] = $this->buildSelect();
          $sql[] = $this->buildFrom();
          $sql[] = $this->buildJoin();
@@ -44,9 +44,15 @@ class QueryBuilder
          $sql[] = $this->buildLimit();
 
          $query = implode(' ', array_filter($sql));
-
          if ($this->distinct) {
             $query = preg_replace('/^SELECT\s+/i', 'SELECT DISTINCT ', $query);
+         }
+
+         if (!empty($this->unions)) {
+            foreach ($this->unions as $u) {
+                  $type   = $u['all'] ? 'UNION ALL' : 'UNION';
+                  $query .= " {$type} " . $u['query'];
+            }
          }
 
          return $query;
@@ -54,7 +60,13 @@ class QueryBuilder
 }
 
 $instance = new QueryBuilder();
-$query    = $instance->table('orders')->aggregate('avg', 'price')->toSQL();
+$query = $instance->table('users')
+    ->select('name')
+    ->whereExists("
+        SELECT 1 FROM orders 
+        WHERE orders.user_id = users.id
+    ")
+    ->toSQL();
 
 echo $query;
 $result = run($query);
