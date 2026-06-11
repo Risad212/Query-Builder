@@ -15,9 +15,9 @@ class QueryBuilder
     protected $offset;
     protected $orderBy;
     protected $groupBy;
-    protected $having;
     protected $count;
     protected $distinct = false;
+    protected $having   = [];
     protected $where    = [];
     protected $select   = [];
     protected $whereOr  = [];
@@ -26,11 +26,11 @@ class QueryBuilder
     protected $whereIn  = [];
     protected $unions   = [];
 
-      /**
-       * Get SQL Query
-       * 
-       * @return string
-       */
+    /**
+     * Get SQL Query
+     * 
+     * @return string
+     */
       public function toSQL(): string 
       {
          $sql   = [];
@@ -60,15 +60,12 @@ class QueryBuilder
 }
 
 $instance = new QueryBuilder();
-$query = $instance->table('users')
-    ->select('name')
-    ->whereExists("
-        SELECT 1 FROM orders 
-        WHERE orders.user_id = users.id
-    ")
-    ->toSQL();
+$query    = $instance->table('orders')->where('price', '500')
+    ->whereOr('price > 40000')
+    ->toSQL();;
 
-echo $query;
+print($query);
+
 $result = run($query);
 echo "<pre>";
 print_r($result);

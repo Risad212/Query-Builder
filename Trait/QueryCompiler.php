@@ -81,12 +81,14 @@ trait QueryCompiler
        *
        * @return string
        */
-      protected function buildHaving(): string
-      {
-         return !empty($this->having)
-            ? "HAVING {$this->having}"
-            : '';
-      }
+        protected function buildHaving(): string
+        {
+            if (empty($q->having)) {
+              return '';
+            }
+
+          return 'HAVING ' . implode(' AND ', $q->having);
+         }
 
       /**
        * Build ORDER BY clause

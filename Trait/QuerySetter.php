@@ -26,7 +26,6 @@ trait QuerySetter
   public function where(string $column, mixed $value): self 
   {
      $this->where[] = "{$column} = '{$value}'";
-
      return $this;
   }
 
@@ -118,7 +117,7 @@ trait QuerySetter
       */
       public function having(string $condition): self
       {
-         $this->having = $condition;
+         $this->having[] = $condition;
          return $this;
       }
 
@@ -281,6 +280,23 @@ trait QuerySetter
          $operator = $not ? 'NOT EXISTS' : 'EXISTS';
 
          $this->where[] = "{$operator} ({$query})";
+
+         return $this;
+      }
+
+      /**
+       * Add HAVING GROUP
+       * 
+       * @param callback $callback
+       * @return self
+       */
+      public function havingGroup(callable $callback): self
+      {
+         $group = new self();
+
+         $callback($group);
+
+         $this->having[] = '(' . implode(' AND ', $group->having) . ')';
 
          return $this;
       }
