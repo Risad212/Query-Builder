@@ -178,7 +178,7 @@ trait QuerySetter
       }
 
       /**
-       * Add IN in table
+       * Add WHERE IN in table
        * 
        * @param string $column
        * @param array  $values
@@ -202,7 +202,6 @@ trait QuerySetter
       public function aggregate(string $type, string $column): self
       {
          $typeUpper    = strtoupper( $type );
-         
          $this->select = ["{$typeUpper}({$column}) AS {$type}"];
 
          return $this;
@@ -242,7 +241,7 @@ trait QuerySetter
        * @param string $query
        * @return self
        */
-      public function unions(string $query, bool $all = false): self
+      public function union(string $query, bool $all = false): self
       {
          $this->unions[] = [
             'query' => $query,

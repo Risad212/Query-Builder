@@ -60,11 +60,13 @@ class QueryBuilder
 }
 
 $instance = new QueryBuilder();
-$query    = $instance->table('orders')->where('price', '500')
-    ->whereOr('price > 40000')
-    ->toSQL();;
+$query = $instance
+    ->table('orders')
+    ->select('user_id')
+    ->union("SELECT id FROM users")
+    ->toSQL();
 
-print($query);
+echo $query;
 
 $result = run($query);
 echo "<pre>";
