@@ -60,12 +60,7 @@ class QueryBuilder
 }
 
 $instance = new QueryBuilder();
-$query = $instance
-    ->table('orders')
-    ->select('user_id')
-    ->union("SELECT id FROM users")
-    ->toSQL();
-
+$query = $instance->table('orders')->limit(10)->offset(5)->toSQL();
 echo $query;
 
 $result = run($query);
