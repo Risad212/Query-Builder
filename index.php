@@ -60,7 +60,16 @@ class QueryBuilder
 }
 
 $instance = new QueryBuilder();
-$query = $instance->table('orders')->limit(10)->offset(5)->toSQL();
+$query = $instance
+    ->table('users')
+    ->select('name')
+    ->count('name')
+    ->groupBy('name')
+    ->havingGroup( function($q){
+        $q->having('COUNT(name) > 1');
+        $q->having('name = "User 1" ');
+    })
+    ->toSQL();
 echo $query;
 
 $result = run($query);
