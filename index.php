@@ -33,7 +33,7 @@ class QueryBuilder
      * @return 
      */
     public function getBindings(): array
-     {
+    {
        return $this->bindings;
      }
 
@@ -68,22 +68,44 @@ class QueryBuilder
 
          return $query;
       }
+
+      /**
+       * Reset Query 
+       * 
+       * @return self
+       */
+      public function reset(): self
+      {
+         $this->table    = null;
+         $this->limit    = null;
+         $this->offset   = null;
+         $this->orderBy  = null;
+         $this->groupBy  = null;
+         $this->select   = [];
+         $this->where    = [];
+         $this->whereOr  = [];
+         $this->like     = [];
+         $this->whereIn  = [];
+         $this->having   = [];
+         $this->join     = [];
+         $this->unions   = [];
+         $this->bindings = [];
+         $this->distinct = false;
+
+         return $this;
+      }
 }
 
-$instance = new QueryBuilder();
-$query = $instance
-    ->table('users')
-    ->select('name')
-    ->count('name')
-    ->groupBy('name')
-    ->havingGroup( function($q){
-        $q->having('COUNT(name) > 1');
-        $q->having('name = "User 1" ');
-    })
-    ->toSQL();
-echo $query;
+$qb = new QueryBuilder();
 
-$result = run($query, $instance->getBindings());
-echo "<pre>";
-print_r($result);
-echo "</pre>";
+echo $qb->table('users')
+    ->where('id', 1)
+    ->toSQL();
+
+echo "<br>";
+
+$qb->reset();
+
+echo $qb->table('posts')
+    ->where('status', 'active')
+    ->toSQL();
