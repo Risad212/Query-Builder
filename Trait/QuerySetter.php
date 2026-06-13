@@ -25,7 +25,9 @@ trait QuerySetter
   */
   public function where(string $column, mixed $value): self 
   {
-     $this->where[] = "{$column} = '{$value}'";
+     $this->where[]    = "{$column} = ? ";
+     $this->bindings[] = $value;
+
      return $this;
   }
 
@@ -78,8 +80,10 @@ trait QuerySetter
       */
       public function whereOr( string $column, mixed $value, bool $not = false ): self 
       {
-         $operator        = $not ? '!=' : '=';
-         $this->whereOr[] = "{$column} {$operator} '{$value}'";
+         $operator         = $not ? '!=' : '=';
+         $this->whereOr[]  = "{$column} {$operator} ?";
+         $this->bindings[] = $value;
+
          return $this;
       }
 
@@ -92,8 +96,10 @@ trait QuerySetter
        */
       public function like(string $column, string $value): self
        {
-         $value = strtolower($value);
-         $this->like[] = "LOWER({$column}) LIKE '%{$value}%'";
+         $value            = strtolower($value);
+         $this->like[]     = "LOWER({$column}) LIKE ?";
+         $this->bindings[] = '%' . $value . '%';
+
          return $this;
        }
 
@@ -115,9 +121,11 @@ trait QuerySetter
       * @param string $condition
       * @return self
       */
-      public function having(string $condition): self
+      public function having(string $column, string $operator, mixed $value): self
       {
-         $this->having[] = $condition;
+         $this->having[] = "{$column} {$operator} ?";
+         $this->bindings[] = $value;
+
          return $this;
       }
 
@@ -157,10 +165,8 @@ trait QuerySetter
        */
       public function join(string $table, string $condition, string $type = 'INNER'): self 
       {
-        $type = strtoupper($type);
-
+        $type         = strtoupper($type);
         $this->join[] = "{$type} JOIN {$table} ON {$condition}";
-
         return $this;
       }
 
@@ -184,11 +190,20 @@ trait QuerySetter
        * @param array  $values
        * @return self
        */
-      public function whereIn(string $column, array $values, $not = false): self 
+      public function whereIn(string $column, array $values, $not = false): self
       {
-         $escaped         = array_map(fn($v) => addslashes($v), $values);
+         if (empty($values)) {
+            return $this;
+         }
+
+         $placeholders    = implode(',', array_fill(0, count($values), '?'));
          $operator        = $not ? 'NOT IN' : 'IN';
-         $this->whereIn[] = "{$column} {$operator} ('" . implode("','", $escaped) . "')";
+         $this->whereIn[] = "{$column} {$operator} ({$placeholders})";
+
+         foreach ($values as $value) {
+            $this->bindings[] = $value;
+         }
+
          return $this;
       }
 
@@ -217,10 +232,12 @@ trait QuerySetter
        */
       public function whereBetween(string $column, string $start, string $end , bool $not = false): self 
       {
-        $this->where[] = $not
-        ? "{$column} NOT BETWEEN {$start} AND {$end}"
-        : "{$column} BETWEEN {$start} AND {$end}";
-        return $this;
+         $operator         = $not ? 'NOT BETWEEN' : 'BETWEEN';
+         $this->where[]    = "{$column} {$operator} ? AND ?";
+         $this->bindings[] = $start;
+         $this->bindings[] = $end;
+        
+         return $this;
       }
 
       /**
@@ -259,10 +276,9 @@ trait QuerySetter
       public function whereGroup(callable $callback): self
       {
          $group = new self();
-
          $callback($group);
-
-         $this->where[] = '(' . implode(' AND ', $group->where) . ')';
+         $this->where[]  = '(' . implode(' AND ', $group->where) . ')';
+         $this->bindings = array_merge($this->bindings, $group->bindings);
 
          return $this;
       }
@@ -274,11 +290,15 @@ trait QuerySetter
        * @param bool   $not
        * @return self
        */
-      public function whereExists(string $query, bool $not = false): self
+      public function whereExists(string $query, array $bindings = [], bool $not = false): self
       {
          $operator = $not ? 'NOT EXISTS' : 'EXISTS';
 
          $this->where[] = "{$operator} ({$query})";
+
+         foreach ($bindings as $value) {
+            $this->bindings[] = $value;
+         }
 
          return $this;
       }
@@ -292,11 +312,10 @@ trait QuerySetter
       public function havingGroup(callable $callback): self
       {
          $group = new self();
-
          $callback($group);
-
          $this->having[] = '(' . implode(' AND ', $group->having) . ')';
-
+         $this->bindings = array_merge($this->bindings, $group->bindings);
+         
          return $this;
       }
 }

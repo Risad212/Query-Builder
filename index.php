@@ -17,6 +17,7 @@ class QueryBuilder
     protected $groupBy;
     protected $count;
     protected $distinct = false;
+    protected $bindings = [];
     protected $having   = [];
     protected $where    = [];
     protected $select   = [];
@@ -25,6 +26,16 @@ class QueryBuilder
     protected $join     = [];
     protected $whereIn  = [];
     protected $unions   = [];
+
+    /**
+     * Get Binding
+     * 
+     * @return 
+     */
+    public function getBindings(): array
+     {
+       return $this->bindings;
+     }
 
     /**
      * Get SQL Query
@@ -72,7 +83,7 @@ $query = $instance
     ->toSQL();
 echo $query;
 
-$result = run($query);
+$result = run($query, $instance->getBindings());
 echo "<pre>";
 print_r($result);
 echo "</pre>";
